@@ -1,0 +1,24 @@
+# Python
+*.pyc
+__pycache__/
+.venv/
+venv/
+env/
+*.sqlite3
+*.log
+
+# Node
+client/node_modules/
+dist/
+build/
+.npm/
+yarn-error.log
+package-lock.json
+
+# Env
+.env
+.env.*
+
+# OS & editors
+.DS_Store
+.vscode/

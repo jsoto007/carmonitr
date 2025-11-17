@@ -1,0 +1,558 @@
+openapi: 3.1.0
+info:
+  title: staffmonitr API
+  description: |-
+    Multi-tenant staff scheduling, assignment, and geofenced portal API.
+  version: 1.0.0
+servers:
+  - url: https://{hostname}
+    variables:
+      hostname:
+        default: "api.staffmonitr.example"
+paths:
+  /api/accounts:
+    get:
+      summary: List account groups (tenants)
+      responses:
+        '200':
+          description: Account groups
+    post:
+      summary: Create a new account group with branding and geofence data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountGroup'
+      responses:
+        '201':
+          description: Created account group
+  /api/accounts/{account_id}/staff:
+    get:
+      summary: List staff members for the account
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Staff list
+  /api/auth/signup:
+    post:
+      summary: Create a workspace owner and its account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthSignup'
+      responses:
+        '201':
+          description: Workspace registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/auth/login:
+    post:
+      summary: Exchange credentials for a bearer token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLogin'
+      responses:
+        '200':
+          description: Authenticated token payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /api/auth/me:
+    get:
+      summary: Return the authenticated staff context
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Staff profile and assigned tenants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  staff:
+                    $ref: '#/components/schemas/StaffPayload'
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccountGroup'
+        '401':
+          description: Missing or invalid token
+  /api/accounts/{account_id}/kids:
+    get:
+      summary: List kids for the account and their ratios
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Kid roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KidPayload'
+    post:
+      summary: Create or import a kid record for the account
+      parameters:
+        - name: account_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KidCreate'
+      responses:
+        '201':
+          description: Kid created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KidPayload'
+  /api/shifts:
+    post:
+      summary: Schedule a new shift
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Shift'
+      responses:
+        '201':
+          description: Shift created
+    get:
+      summary: Query shifts with filters and assignments
+      parameters:
+        - name: account_id
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shift collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShiftPayload'
+  /api/assignments/open:
+    get:
+      summary: Open shifts for staff to request
+      responses:
+        '200':
+          description: Open shift summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OpenShiftSummary'
+  /api/assignments/{assignment_id}/request:
+    post:
+      summary: Request assignment from an open shift
+      parameters:
+        - name: assignment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Optional requesting staff identity
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staff_id:
+                  type: string
+      responses:
+        '200':
+          description: Request queued for admin review
+  /api/assignments/{assignment_id}/validate-geofence:
+    get:
+      summary: Validate onsite access for assignment visibility
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Geofence result
+  /api/notifications/register:
+    post:
+      summary: Register a staff push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushTokenRequest'
+      responses:
+        '201':
+          description: Token recorded
+  /api/notifications/assignment/{assignment_id}:
+    post:
+      summary: Trigger assignment notifications
+      parameters:
+        - name: assignment_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification work queued
+  /api/imports/{entity}:
+    post:
+      summary: Bulk import staff/kids/assignments
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          text/csv:
+            schema:
+              type: string
+      responses:
+        '202':
+          description: Import scheduled
+  /api/reports/staff-utilization:
+    get:
+      summary: Analytics for staff and ratio compliance
+      responses:
+        '200':
+          description: Aggregated metrics
+  /api/reports/ratio-compliance:
+    get:
+      summary: Ratio compliance analytics by role
+      responses:
+        '200':
+          description: Ratio compliance result sets
+  components:
+    securitySchemes:
+      BearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
+    schemas:
+    AccountGroup:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        timezone:
+          type: string
+        branding:
+          type: object
+          properties:
+            primaryColor:
+              type: string
+            logo:
+              type: string
+            logoUrl:
+              type: string
+        geofence:
+          type: object
+          properties:
+            lat:
+              type: number
+            lon:
+              type: number
+            radiusMeters:
+              type: number
+    Shift:
+      type: object
+      properties:
+        account_group_id:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        ratio_min:
+          type: number
+        role:
+          type: string
+        difficulty:
+          type: string
+        site:
+          type: string
+        is_special:
+          type: boolean
+    KidPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        ratio:
+          type: string
+        requiresOneOnOne:
+          type: boolean
+        specialInstructions:
+          type: string
+        bans:
+          type: array
+          items:
+            type: string
+        shift_id:
+          type: string
+        assignment_id:
+          type: string
+        account_group_id:
+          type: string
+    KidCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        ratio:
+          type: string
+        requiresOneOnOne:
+          type: boolean
+        specialInstructions:
+          type: string
+        bans:
+          type: array
+          items:
+            type: string
+        shift_id:
+          type: string
+        assignment_id:
+          type: string
+    AssignmentPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        shift_id:
+          type: string
+        staff_id:
+          type: string
+        title:
+          type: string
+        site:
+          type: string
+        difficulty:
+          type: number
+        instructions:
+          type: string
+        requiresOneOnOne:
+          type: boolean
+        kidsCount:
+          type: number
+        staff_role:
+          type: string
+        kids:
+          type: array
+          items:
+            $ref: '#/components/schemas/KidPayload'
+    ShiftPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        account_group_id:
+          type: string
+        site:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        ratio_min:
+          type: number
+        leadsRequired:
+          type: number
+        difficulty:
+          type: string
+        role:
+          type: string
+        is_special:
+          type: boolean
+        openShift:
+          type: boolean
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssignmentPayload'
+        kids:
+          type: array
+          items:
+            $ref: '#/components/schemas/KidPayload'
+        pendingAssignmentId:
+          type: string
+        durationHours:
+          type: number
+    OpenShiftSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        site:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        role:
+          type: string
+        ratio_min:
+          type: number
+        difficulty:
+          type: string
+        openShift:
+          type: boolean
+        pendingAssignmentId:
+          type: string
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssignmentPayload'
+    StaffPayload:
+      type: object
+      properties:
+        id:
+          type: string
+        full_name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+        assigned_account_ids:
+          type: array
+          items:
+            type: string
+        invite_expires_at:
+          type: string
+          format: date-time
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        staff:
+          $ref: '#/components/schemas/StaffPayload'
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountGroup'
+    AuthSignup:
+      type: object
+      required:
+        - full_name
+        - email
+        - password
+      properties:
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        account_name:
+          type: string
+        company:
+          type: string
+        organization:
+          type: string
+        role:
+          type: string
+        timezone:
+          type: string
+        logo_url:
+          type: string
+        branding:
+          type: object
+          properties:
+            primaryColor:
+              type: string
+            logoUrl:
+              type: string
+        geofence:
+          type: object
+          properties:
+            lat:
+              type: number
+            lon:
+              type: number
+            radiusMeters:
+              type: number
+    AuthLogin:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    PushTokenRequest:
+      type: object
+      required:
+        - staff_id
+        - token
+      properties:
+        staff_id:
+          type: string
+        token:
+          type: string

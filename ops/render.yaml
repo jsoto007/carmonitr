@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: staffmonitr-server
+    env: python
+    plan: standard
+    buildCommand: pip install -r server/requirements.txt
+    startCommand: gunicorn server.app:app --worker-class=gthread --threads 4 --timeout 120
+    envVars:
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
+      - key: SECRET_KEY
+        value: ${SECRET_KEY}
+      - key: MAIL_SENDER
+        value: ${MAIL_SENDER}
+      - key: JWT_EXPIRY_HOURS
+        value: ${JWT_EXPIRY_HOURS}
+      - key: SSO_DOMAINS
+        value: ${SSO_DOMAINS}
+  - type: static
+    name: staffmonitr-client
+    env: static
+    plan: starter
+    buildCommand: cd client && npm install && npm run build
+    publishPath: client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: ${VITE_API_URL}
+      - key: VITE_DEFAULT_STAFF_ID
+        value: ${VITE_DEFAULT_STAFF_ID}
