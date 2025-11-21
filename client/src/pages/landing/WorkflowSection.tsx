@@ -1,7 +1,7 @@
 import { workflowSteps } from './data';
 
 export const WorkflowSection = () => (
-  <section className="bg-white py-20 dark:bg-slate-950">
+  <section id="workflow" className="bg-white py-20 dark:bg-slate-950">
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-3 text-center">
         <p className="text-xs uppercase tracking-[0.5em] text-indigo-500">How it works</p>

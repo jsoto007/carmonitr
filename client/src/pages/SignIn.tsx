@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { PublicNavBar } from '../components/navigation/PublicNavBar';
 
 export const SignInPage = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +26,8 @@ export const SignInPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-950">
-      <div className="mx-auto flex max-w-3xl flex-col gap-12 px-4 py-16 text-slate-100">
+      <PublicNavBar />
+      <div className="mx-auto flex max-w-3xl flex-col gap-12 px-4 pb-16 pt-28 text-slate-100">
         <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.6em] text-slate-500">Sign in</p>
           <h1 className="text-3xl font-semibold text-white">Access your staff scheduling cockpit</h1>
