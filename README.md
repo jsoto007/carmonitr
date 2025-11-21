@@ -90,3 +90,4 @@ npm run dev
 3. Tie `VITE_DEFAULT_STAFF_ID` and `VITE_API_URL` to your production environment so staff dashboards can hydrate with realistic permission data without manual overrides.
 # carmonitr
 # staffmonitr
+# staffmonitr
