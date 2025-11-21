@@ -93,6 +93,7 @@ export const AppNavBar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const navRef = useRef<HTMLDivElement | null>(null);
+  const springEase = 'cubic-bezier(0.18, 1, 0.22, 1.25)';
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -131,6 +132,57 @@ export const AppNavBar = () => {
     () => (!isAdmin ? { to: '/open-shifts', label: 'Find open shifts' } : null),
     [isAdmin],
   );
+  const renderCategoryButton = (category: Category) => {
+    const { id, label, Icon, accent, to } = category;
+    const selected = activeCategory?.id === id;
+    const routeActive = isActive(to);
+    const transform = !activeCategory
+      ? 'translateX(0) scale(1)'
+      : selected
+        ? 'translateX(-120%) scale(1.02)'
+        : 'translateX(48%) scale(0.98)';
+
+    return (
+      <button
+        key={id}
+        type="button"
+        aria-pressed={selected}
+        aria-expanded={selected}
+        onClick={() => handleCategoryToggle(category)}
+        className={clsx(
+          'group relative inline-flex items-center justify-center overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold transition-all duration-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+          'ease-[cubic-bezier(0.18,1,0.22,1.25)]',
+          selected
+            ? `bg-gradient-to-r ${accent} text-slate-900 ring-1 ring-white/40 shadow-[0_15px_45px_rgba(79,70,229,0.25)] dark:text-white`
+            : 'bg-white/70 text-slate-900/90 hover:-translate-y-0.5 hover:bg-white/80 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/15',
+          routeActive && !selected ? 'ring-1 ring-indigo-300/70 dark:ring-indigo-400/50' : 'border-white/30 dark:border-white/10',
+          selected ? 'pl-3 pr-6' : 'pl-3 pr-3',
+        )}
+        style={{
+          transform,
+          transition: `transform 700ms ${springEase}`,
+        }}
+      >
+        <span
+          className={clsx(
+            'absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-60',
+            selected ? 'bg-white/10' : 'bg-white/15 dark:bg-white/5',
+          )}
+          aria-hidden
+        />
+        <Icon className={clsx('relative h-5 w-5 transition duration-500', selected ? 'drop-shadow-[0_4px_18px_rgba(14,165,233,0.45)]' : '')} aria-hidden="true" />
+        <span
+          className={clsx(
+            'ml-2 truncate text-sm transition-all duration-800',
+            'ease-[cubic-bezier(0.18,1,0.22,1.25)]',
+            selected ? 'max-w-[200px] opacity-100' : 'max-w-0 opacity-0',
+          )}
+        >
+          {label}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-6 sm:px-6 lg:px-8">
@@ -152,57 +204,34 @@ export const AppNavBar = () => {
               <span className="hidden sm:inline font-heading text-lg font-semibold tracking-tight">StaffMonitr</span>
             </Link>
 
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <nav
                 aria-label="Primary"
                 className={clsx(
-                  'relative mx-auto flex max-w-3xl items-center gap-2 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]',
+                  'relative mx-auto flex max-w-3xl items-center gap-2 pr-4 sm:pr-8 transition-all duration-800',
+                  'ease-[cubic-bezier(0.18,1,0.22,1.25)]',
                   activeCategory ? 'justify-start' : 'justify-center',
                 )}
+                style={{
+                  paddingLeft: activeCategory ? '5.5rem' : '0',
+                  transition: `padding-left 700ms ${springEase}`,
+                }}
               >
-                {NAV_CATEGORIES.map((category) => {
-                  const { id, label, Icon, accent, to } = category;
-                  const selected = activeCategory?.id === id;
-                  const routeActive = isActive(to);
-
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      aria-pressed={selected}
-                      aria-expanded={selected}
-                      onClick={() => handleCategoryToggle(category)}
+                {activeCategory ? (
+                  <>
+                    {renderCategoryButton(activeCategory)}
+                    <div
                       className={clsx(
-                        'group relative inline-flex items-center justify-center overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
-                        selected
-                          ? `bg-gradient-to-r ${accent} text-slate-900 ring-1 ring-white/40 shadow-[0_15px_45px_rgba(79,70,229,0.25)] dark:text-white`
-                          : 'bg-white/70 text-slate-900/90 hover:-translate-y-0.5 hover:bg-white/80 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/15',
-                        routeActive && !selected ? 'ring-1 ring-indigo-300/70 dark:ring-indigo-400/50' : 'border-white/30 dark:border-white/10',
-                        selected ? 'pl-3 pr-6' : 'pl-3 pr-3',
+                        'ml-auto flex items-center gap-2 transition-all duration-800',
+                        'ease-[cubic-bezier(0.18,1,0.22,1.25)]',
                       )}
-                      style={{
-                        transform: selected ? 'translateX(-140%) scale(1.02)' : 'translateX(0) scale(1)',
-                      }}
                     >
-                      <span
-                        className={clsx(
-                          'absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-60',
-                          selected ? 'bg-white/10' : 'bg-white/15 dark:bg-white/5',
-                        )}
-                        aria-hidden
-                      />
-                      <Icon className={clsx('relative h-5 w-5 transition duration-500', selected ? 'drop-shadow-[0_4px_18px_rgba(14,165,233,0.45)]' : '')} aria-hidden="true" />
-                      <span
-                        className={clsx(
-                          'ml-2 truncate text-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]',
-                          selected ? 'max-w-[180px] opacity-100' : 'max-w-0 opacity-0',
-                        )}
-                      >
-                        {label}
-                      </span>
-                    </button>
-                  );
-                })}
+                      {NAV_CATEGORIES.filter((cat) => cat.id !== activeCategory.id).map(renderCategoryButton)}
+                    </div>
+                  </>
+                ) : (
+                  NAV_CATEGORIES.map(renderCategoryButton)
+                )}
               </nav>
             </div>
 
