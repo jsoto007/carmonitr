@@ -1,51 +1,86 @@
 import { Transition } from '@headlessui/react';
 import {
-  ArrowRightOnRectangleIcon,
+  ArrowRightStartOnRectangleIcon,
   Bars3Icon,
   CalendarDaysIcon,
+  ChartBarSquareIcon,
+  ClipboardDocumentListIcon,
   HomeIcon,
+  MagnifyingGlassIcon,
   MegaphoneIcon,
   ShieldCheckIcon,
+  SignalIcon,
+  SparklesIcon,
   UserGroupIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAccountContext } from '../../context/AccountContext';
 import { useAuth } from '../../context/AuthContext';
 
-type NavItem = {
+type Category = {
+  id: string;
   to: string;
   label: string;
-  description?: string;
+  accent: string;
   Icon: typeof HomeIcon;
+  items: {
+    id: string;
+    label: string;
+    to: string;
+    Icon: typeof HomeIcon;
+  }[];
 };
 
-const NAV_ITEMS: NavItem[] = [
+const NAV_CATEGORIES: Category[] = [
   {
+    id: 'dashboard',
     to: '/dashboard',
     label: 'Dashboard',
-    description: 'Live staffing and ratios',
+    accent: 'from-cyan-400/60 via-sky-500/60 to-indigo-500/60',
     Icon: HomeIcon,
+    items: [
+      { id: 'ratios', label: 'Live ratios', to: '/dashboard', Icon: SignalIcon },
+      { id: 'compliance', label: 'Compliance map', to: '/dashboard', Icon: ShieldCheckIcon },
+      { id: 'trends', label: 'Trends', to: '/dashboard', Icon: ChartBarSquareIcon },
+    ],
   },
   {
+    id: 'calendar',
     to: '/calendar',
     label: 'Calendar',
-    description: 'Publish shifts & geofences',
+    accent: 'from-indigo-400/60 via-blue-500/70 to-sky-500/60',
     Icon: CalendarDaysIcon,
+    items: [
+      { id: 'publish', label: 'Publish shifts', to: '/calendar', Icon: SparklesIcon },
+      { id: 'geofences', label: 'Geofences', to: '/calendar', Icon: ClipboardDocumentListIcon },
+      { id: 'coverage', label: 'Coverage QA', to: '/calendar', Icon: ShieldCheckIcon },
+    ],
   },
   {
+    id: 'kids',
     to: '/kids',
     label: 'Kids & Assignments',
-    description: 'Pair staff with every kid',
+    accent: 'from-teal-400/60 via-emerald-400/60 to-cyan-400/60',
     Icon: UserGroupIcon,
+    items: [
+      { id: 'roster', label: 'Kid roster', to: '/kids', Icon: ClipboardDocumentListIcon },
+      { id: 'pairing', label: 'Staff pairing', to: '/kids', Icon: SparklesIcon },
+      { id: 'notes', label: 'Notes', to: '/kids', Icon: MagnifyingGlassIcon },
+    ],
   },
   {
+    id: 'open-shifts',
     to: '/open-shifts',
     label: 'Open Shifts',
-    description: 'Broadcast & approvals',
+    accent: 'from-amber-300/70 via-orange-400/70 to-rose-400/70',
     Icon: MegaphoneIcon,
+    items: [
+      { id: 'broadcast', label: 'Broadcast', to: '/open-shifts', Icon: MegaphoneIcon },
+      { id: 'candidates', label: 'Candidates', to: '/open-shifts', Icon: UserGroupIcon },
+      { id: 'approvals', label: 'Approvals', to: '/open-shifts', Icon: ShieldCheckIcon },
+    ],
   },
 ];
 
@@ -55,17 +90,34 @@ export const AppNavBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentStaff, logout } = useAuth();
-  const { accounts, selectedAccount, setSelectedAccount } = useAccountContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const navRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMobileMenuOpen(false);
+    setActiveCategory(null);
   }, [location.pathname, location.search]);
 
   const isActive = (path: string) => {
     const normalized = path.replace(/\/+$/, '');
     const current = location.pathname.replace(/\/+$/, '');
     return current === normalized || current.startsWith(`${normalized}/`);
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setActiveCategory(null);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOutsideClick);
+    return () => document.removeEventListener('pointerdown', handleOutsideClick);
+  }, []);
+
+  const handleCategoryToggle = (category: Category) => {
+    setActiveCategory((current) => (current?.id === category.id ? null : category));
   };
 
   const handleLogout = () => {
@@ -75,111 +127,183 @@ export const AppNavBar = () => {
 
   const isAdmin = ADMIN_ROLES.has(currentStaff?.role ?? '');
   const roleLabel = currentStaff?.role ?? 'Visitor';
-  const CtaIcon = isAdmin ? CalendarDaysIcon : MegaphoneIcon;
   const cta = useMemo(
-    () =>
-      isAdmin
-        ? { to: '/calendar', label: 'Publish shifts' }
-        : { to: '/open-shifts', label: 'Find open shifts' },
+    () => (!isAdmin ? { to: '/open-shifts', label: 'Find open shifts' } : null),
     [isAdmin],
   );
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="flex items-center justify-between gap-3 rounded-full border border-white/50 bg-white/90 px-4 py-2 shadow-lg backdrop-blur-xl transition dark:border-slate-800 dark:bg-slate-900/80">
-          <Link
-            to="/dashboard"
-            className="flex items-center gap-3 rounded-full px-2 py-1 text-slate-900 transition hover:text-indigo-600 dark:text-white"
-          >
-            <span className="inline-flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500/20 via-sky-500/25 to-blue-500/20 text-base font-semibold text-indigo-700 shadow-inner dark:text-indigo-200">
-              SM
-            </span>
-            <span className="hidden sm:inline font-heading text-lg font-semibold tracking-tight">StaffMonitr</span>
-            <span className="hidden text-xs uppercase tracking-[0.35em] text-slate-500 sm:inline">
-              Compliance scheduling
-            </span>
-          </Link>
-
-          <nav className="hidden items-center gap-1 text-sm font-medium text-slate-800 dark:text-slate-200 md:flex">
-            {NAV_ITEMS.map(({ to, label, Icon }) => (
-              <Link
-                key={to}
-                to={to}
-                className={clsx(
-                  'flex items-center gap-2 rounded-full px-3 py-2 transition duration-150',
-                  isActive(to)
-                    ? 'bg-indigo-50 text-indigo-700 shadow-inner ring-1 ring-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-100 dark:ring-indigo-300/30'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-indigo-100',
-                )}
-              >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                <span>{label}</span>
-              </Link>
-            ))}
-          </nav>
-
-          <div className="hidden items-center gap-2 sm:flex">
-            <div className="hidden items-center gap-2 lg:flex">
-              <label className="sr-only" htmlFor="account-switcher">
-                Switch account
-              </label>
-              <select
-                id="account-switcher"
-                value={selectedAccount.id}
-                onChange={(event) => {
-                  const next = accounts.find((account) => account.id === event.target.value);
-                  if (next) setSelectedAccount(next);
-                }}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.35em] text-slate-700 outline-none transition hover:border-indigo-300 focus-visible:border-indigo-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-              >
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-              <span
-                className={clsx(
-                  'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]',
-                  isAdmin
-                    ? 'border-amber-200/60 bg-amber-50 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-100'
-                    : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
-                )}
-              >
-                <ShieldCheckIcon className="h-4 w-4" aria-hidden="true" />
-                {roleLabel}
+        <div
+          ref={navRef}
+          className="relative isolate overflow-hidden rounded-3xl border border-white/30 bg-white/15 px-4 py-3 shadow-2xl shadow-blue-900/10 backdrop-blur-2xl transition dark:border-white/10 dark:bg-slate-900/45"
+        >
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-white/70 via-white/10 to-white/30 opacity-90 dark:from-slate-800/60 dark:via-slate-900/70 dark:to-slate-900/50" />
+          <div className="pointer-events-none absolute inset-x-12 top-0 -z-10 h-28 bg-gradient-to-br from-sky-400/50 via-indigo-500/40 to-purple-500/30 opacity-70 blur-3xl dark:from-sky-500/25 dark:via-indigo-400/25 dark:to-blue-500/25" />
+          <div className="flex items-center gap-4">
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-3 rounded-2xl px-2 py-1 text-slate-900 transition hover:text-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500 dark:text-white"
+            >
+              <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/35 via-sky-500/40 to-blue-500/35 text-base font-semibold text-indigo-800 shadow-inner shadow-white/40 dark:text-indigo-100">
+                SM
               </span>
+              <span className="hidden sm:inline font-heading text-lg font-semibold tracking-tight">StaffMonitr</span>
+            </Link>
+
+            <div className="flex-1">
+              <nav
+                aria-label="Primary"
+                className={clsx(
+                  'relative mx-auto flex max-w-3xl items-center gap-2 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]',
+                  activeCategory ? 'justify-start' : 'justify-center',
+                )}
+              >
+                {NAV_CATEGORIES.map((category) => {
+                  const { id, label, Icon, accent, to } = category;
+                  const selected = activeCategory?.id === id;
+                  const routeActive = isActive(to);
+
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={selected}
+                      aria-expanded={selected}
+                      onClick={() => handleCategoryToggle(category)}
+                      className={clsx(
+                        'group relative inline-flex items-center justify-center overflow-hidden rounded-2xl border px-3 py-2 text-sm font-semibold transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500',
+                        selected
+                          ? `bg-gradient-to-r ${accent} text-slate-900 ring-1 ring-white/40 shadow-[0_15px_45px_rgba(79,70,229,0.25)] dark:text-white`
+                          : 'bg-white/70 text-slate-900/90 hover:-translate-y-0.5 hover:bg-white/80 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/15',
+                        routeActive && !selected ? 'ring-1 ring-indigo-300/70 dark:ring-indigo-400/50' : 'border-white/30 dark:border-white/10',
+                        selected ? 'pl-3 pr-6' : 'pl-3 pr-3',
+                      )}
+                      style={{
+                        transform: selected ? 'translateX(-140%) scale(1.02)' : 'translateX(0) scale(1)',
+                      }}
+                    >
+                      <span
+                        className={clsx(
+                          'absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-60',
+                          selected ? 'bg-white/10' : 'bg-white/15 dark:bg-white/5',
+                        )}
+                        aria-hidden
+                      />
+                      <Icon className={clsx('relative h-5 w-5 transition duration-500', selected ? 'drop-shadow-[0_4px_18px_rgba(14,165,233,0.45)]' : '')} aria-hidden="true" />
+                      <span
+                        className={clsx(
+                          'ml-2 truncate text-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]',
+                          selected ? 'max-w-[180px] opacity-100' : 'max-w-0 opacity-0',
+                        )}
+                      >
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
 
-            <Link
-              to={cta.to}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <CtaIcon className="h-4 w-4" aria-hidden="true" />
-              <span>{cta.label}</span>
-            </Link>
+            <div className="hidden items-center gap-2 sm:flex">
+              <div className="hidden items-center xl:flex">
+                <span
+                  className={clsx(
+                    'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em]',
+                    isAdmin
+                      ? 'border-amber-200/70 bg-amber-50/80 text-amber-800 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-100'
+                      : 'border-white/30 bg-white/70 text-slate-800 dark:border-white/15 dark:bg-white/10 dark:text-white',
+                  )}
+                >
+                  <ShieldCheckIcon className="h-4 w-4" aria-hidden="true" />
+                  {roleLabel}
+                </span>
+              </div>
+
+              {cta && (
+                <Link
+                  to={cta.to}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-500/40 transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                >
+                  <MegaphoneIcon className="h-4 w-4" aria-hidden="true" />
+                  <span>{cta.label}</span>
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/70 px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-indigo-200 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:border-indigo-400/60 dark:hover:text-indigo-100"
+              >
+                <ArrowRightStartOnRectangleIcon className="h-4 w-4" aria-hidden="true" />
+                <span>Logout</span>
+              </button>
+            </div>
 
             <button
               type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-indigo-400/60 dark:hover:text-indigo-100"
+              className="inline-flex items-center justify-center rounded-full border border-white/30 bg-white/70 p-2 text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-white/15 dark:bg-white/10 dark:text-white md:hidden"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav-menu"
             >
-              <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden="true" />
-              <span>Logout</span>
+              <span className="sr-only">{mobileMenuOpen ? 'Close menu' : 'Open menu'}</span>
+              {mobileMenuOpen ? <XMarkIcon className="h-5 w-5" aria-hidden="true" /> : <Bars3Icon className="h-5 w-5" aria-hidden="true" />}
             </button>
           </div>
 
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white/90 p-2 text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-indigo-400/60 dark:hover:text-indigo-100 md:hidden"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-nav-menu"
+          <Transition
+            show={Boolean(activeCategory)}
+            enter="transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            enterFrom="opacity-0 -translate-y-2"
+            enterTo="opacity-100 translate-y-0"
+            leave="transition duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            leaveFrom="opacity-100 translate-y-0"
+            leaveTo="opacity-0 -translate-y-2"
           >
-            <span className="sr-only">{mobileMenuOpen ? 'Close menu' : 'Open menu'}</span>
-            {mobileMenuOpen ? <XMarkIcon className="h-5 w-5" aria-hidden="true" /> : <Bars3Icon className="h-5 w-5" aria-hidden="true" />}
-          </button>
+            <div className="mt-4 flex items-start justify-between gap-3 rounded-2xl border border-white/25 bg-white/20 p-3 shadow-inner backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {activeCategory?.items.map((item, index) => (
+                  <Link
+                    key={item.id}
+                    to={item.to}
+                    onClick={() => setActiveCategory(null)}
+                    className="group relative flex flex-col items-start justify-center gap-2 rounded-xl border border-white/30 bg-white/70 px-3 py-3 text-left text-slate-900 shadow-sm transition duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:border-indigo-200/70 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-white/15 dark:bg-white/5 dark:text-white"
+                    style={{
+                      transitionDelay: `${index * 70}ms`,
+                      opacity: activeCategory ? 1 : 0,
+                      transform: activeCategory ? 'translateY(0)' : 'translateY(8px)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={clsx(
+                          'inline-flex size-10 items-center justify-center rounded-xl bg-gradient-to-br text-slate-900 shadow-inner shadow-white/60 dark:text-white',
+                          activeCategory?.accent ?? 'from-indigo-500/40 via-sky-400/40 to-cyan-400/40',
+                        )}
+                      >
+                        <item.Icon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</span>
+                        <span className="text-xs text-slate-600 dark:text-slate-300">Tap to open</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveCategory(null)}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/30 bg-white/70 p-3 text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-white/15 dark:bg-white/5 dark:text-white"
+                aria-label="Close expanded menu"
+              >
+                <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+          </Transition>
         </div>
       </div>
 
@@ -195,9 +319,9 @@ export const AppNavBar = () => {
       >
         <div id="mobile-nav-menu" className="md:hidden">
           <div className="mx-auto mt-3 max-w-6xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur-lg dark:border-slate-800 dark:bg-slate-900/90">
+            <div className="rounded-3xl border border-white/30 bg-white/85 p-4 shadow-xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/85">
               <div className="space-y-1">
-                {NAV_ITEMS.map(({ to, label, Icon }) => (
+                {NAV_CATEGORIES.map(({ to, label, Icon }) => (
                   <Link
                     key={to}
                     to={to}
@@ -215,32 +339,13 @@ export const AppNavBar = () => {
                 ))}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3 dark:border-white/5 dark:bg-white/5">
-                <label className="sr-only" htmlFor="mobile-account-switcher">
-                  Switch account
-                </label>
-                <select
-                  id="mobile-account-switcher"
-                  value={selectedAccount.id}
-                  onChange={(event) => {
-                    const next = accounts.find((account) => account.id === event.target.value);
-                    if (next) setSelectedAccount(next);
-                  }}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-indigo-300 focus-visible:border-indigo-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                >
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
-
+              <div className="mt-4 rounded-2xl border border-white/30 bg-white/85 p-4 shadow-xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/85">
                 <div
                   className={clsx(
-                    'mt-3 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.35em]',
+                    'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.35em]',
                     isAdmin
-                      ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-200/70 dark:bg-amber-500/15 dark:text-amber-100'
-                      : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200',
+                      ? 'bg-amber-50/90 text-amber-800 ring-1 ring-amber-200/70 dark:bg-amber-500/15 dark:text-amber-100'
+                      : 'bg-white/80 text-slate-800 ring-1 ring-white/60 dark:bg-white/10 dark:text-white',
                   )}
                 >
                   <ShieldCheckIcon className="h-4 w-4" aria-hidden="true" />
@@ -249,20 +354,22 @@ export const AppNavBar = () => {
               </div>
 
               <div className="mt-4 space-y-3">
-                <Link
-                  to={cta.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition hover:shadow-lg"
-                >
-                  <CtaIcon className="h-4 w-4" aria-hidden="true" />
-                  <span>{cta.label}</span>
-                </Link>
+                {cta && (
+                  <Link
+                    to={cta.to}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/30 transition hover:shadow-lg"
+                  >
+                    <MegaphoneIcon className="h-4 w-4" aria-hidden="true" />
+                    <span>{cta.label}</span>
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-200 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/80 px-4 py-3 text-sm font-semibold text-slate-800 transition hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 >
-                  <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden="true" />
+                  <ArrowRightStartOnRectangleIcon className="h-4 w-4" aria-hidden="true" />
                   <span>Logout</span>
                 </button>
               </div>
