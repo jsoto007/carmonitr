@@ -89,3 +89,4 @@ npm run dev
 2. Seed production-ready assignment and geofence data by extending `server/seed.py` or importing via `server/routes/imports.py`.
 3. Tie `VITE_DEFAULT_STAFF_ID` and `VITE_API_URL` to your production environment so staff dashboards can hydrate with realistic permission data without manual overrides.
 # carmonitr
+# staffmonitr
